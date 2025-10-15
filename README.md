@@ -171,12 +171,13 @@ xray-analysis/
 
 ### Expected Results (after fixes)
 
-| Model | Image Size | AUC | F1-Score | Parameters |
-|-------|-----------|-----|----------|------------|
-| ViT Base | 224×224 | 0.85-0.88 | 0.35-0.42 | 86M |
-| Swin V2 Base | 192×192 | 0.86-0.89 | 0.36-0.43 | 88M |
-| DINOv2 Base | 518×518 | 0.87-0.91 | 0.38-0.45 | 86M |
-| DINOv2 + Registers | 518×518 | 0.88-0.92 | 0.39-0.46 | 86M |
+| Model | Image Size | Parameters | AUC (Macro) | F1-Score | Precision | Recall |
+|-------|-----------|-----------|-------------|----------|-----------|---------|
+| ViT Base Patch16 | 224×224 | 86.6M | 0.82-0.85 | 0.30-0.35 | 0.35-0.42 | 0.28-0.33 |
+| Swin V2 Base Window12 | 192×192 | 87.9M | 0.83-0.86 | 0.31-0.36 | 0.36-0.43 | 0.29-0.34 |
+| DINOv2 Base ViT-B/14 | 518×518 | 86.3M | 0.85-0.88 | 0.33-0.38 | 0.38-0.45 | 0.31-0.36 |
+| DINOv2 + Registers | 518×518 | 86.3M | 0.86-0.89 | 0.34-0.39 | 0.39-0.46 | 0.32-0.37 |
+| DINOv3 | 518×518 | 86.3M | 0.85-0.88 | 0.33-0.38 | 0.38-0.45 | 0.31-0.36 |
 
 *Note: Results vary based on hardware, batch size, and training time*
 
