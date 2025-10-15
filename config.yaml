@@ -1,0 +1,174 @@
+# Medical X-ray Analysis and Report Generation Configuration
+
+# Dataset Configuration
+dataset:
+  name: "CheXpert"
+  data_dir: "/export/home/acs/stud/h/hseyedfarid/xray"
+  csv_path: "/home/olimp/NoteBooks/xray/train.csv"
+  val_csv_path: "/home/olimp/NoteBooks/xray/valid.csv"
+  image_size: 224
+  num_classes: 14  # CheXpert has 14 pathology labels
+  labels:
+    - "No Finding"
+    - "Enlarged Cardiomediastinum"
+    - "Cardiomegaly"
+    - "Lung Opacity"
+    - "Lung Lesion"
+    - "Edema"
+    - "Consolidation"
+    - "Pneumonia"
+    - "Atelectasis"
+    - "Pneumothorax"
+    - "Pleural Effusion"
+    - "Pleural Other"
+    - "Fracture"
+    - "Support Devices"
+
+# Model Configuration
+models:
+  # Vision Transformer (ViT)
+  vit:
+    name: "vit_base_patch16_224"
+    pretrained: true
+    num_classes: 14
+    dropout: 0.1
+    image_size: 224  # Native size for ViT
+    
+  # Swin Transformer V2
+  swin_v2:
+    name: "swinv2_base_window12_192_22k"
+    pretrained: true
+    num_classes: 14
+    dropout: 0.1
+    image_size: 192  # Native size for Swin V2 with window 12
+    
+  # DINOv2
+  dinov2:
+    name: "dinov2_vitb14"
+    pretrained: true
+    num_classes: 14
+    freeze_backbone: false
+    image_size: 518  # Native pre-training size for DINOv2
+    
+  # DINOv2 with Registers
+  dinov2_registers:
+    name: "dinov2_vitb14_reg"
+    pretrained: true
+    num_classes: 14
+    freeze_backbone: false
+    image_size: 518  # Native pre-training size for DINOv2 with registers
+    
+  # DINOv3 (when available)
+  dinov3:
+    name: "dinov3_vitb14"
+    pretrained: true
+    num_classes: 14
+    freeze_backbone: false
+    image_size: 518  # Following DINOv2 native size
+
+# Training Configuration
+# Optimized for 3x A100 80GB GPUs + 256 CPU cores + 2TB RAM
+# Note: Batch size may need reduction for DINOv2 (518x518 images vs 224x224)
+training:
+  batch_size: 128  # Works for ViT/Swin. For DINOv2 (518x518), reduce to ~32-64 per GPU
+  num_epochs: 50
+  learning_rate: 0.0001  # REDUCED: Lower LR often works better for medical images
+  weight_decay: 0.01
+  num_workers: 32  # Utilize more CPU cores for data loading
+  mixed_precision: true  # Use FP16/BF16 for faster training
+  gradient_accumulation_steps: 1
+  
+  # Multi-GPU settings
+  distributed: true
+  world_size: 3  # 3 GPUs
+  backend: "nccl"  # NVIDIA's optimized backend
+  
+  # Loss configuration
+  loss_type: "bce"  # binary cross entropy for multi-label
+  label_smoothing: 0.0
+  
+  # Optimizer
+  optimizer: "adamw"
+  scheduler: "cosine"
+  warmup_epochs: 5
+  
+  # Checkpointing
+  checkpoint_dir: "/home/olimp/NoteBooks/xray/checkpoints"
+  save_frequency: 5
+  keep_best_only: true
+  
+  # Early stopping
+  early_stopping:
+    enabled: true
+    patience: 10
+    metric: "val_auc"
+
+# Data Augmentation
+augmentation:
+  train:
+    horizontal_flip: 0.5
+    rotation_limit: 10
+    brightness_contrast: 0.2
+    random_crop: true
+    # Advanced augmentations enabled due to large GPU memory
+    random_gamma: true
+    elastic_transform: true
+    grid_distortion: true
+    normalize:
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+  
+  # Enable heavy augmentation with strong hardware
+  use_advanced_augmentation: true
+  augmentation_strength: 0.3
+  
+  val:
+    normalize:
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+
+# Gemini API Configuration
+gemini:
+  model_name: "gemini-2.5-pro"
+  temperature: 0.7
+  max_tokens: 2048
+  top_p: 0.95
+  
+  # Report generation prompt template
+  system_prompt: |
+    You are an expert radiologist analyzing chest X-ray images. 
+    Based on the detected pathologies and their confidence scores, 
+    generate a detailed, professional radiological report following standard medical reporting format.
+    
+  report_sections:
+    - "Clinical Indication"
+    - "Findings"
+    - "Impression"
+    - "Recommendations"
+
+# Inference Configuration
+inference:
+  ensemble: true  # Use ensemble of models
+  ensemble_models: ["vit", "swin_v2", "dinov2", "dinov2_registers"]
+  threshold: 0.5  # Confidence threshold for positive classification
+  batch_size: 256  # Large batch size for fast inference
+  device: "cuda"
+  
+  # Multi-GPU inference
+  use_multi_gpu: true
+  num_gpus: 3
+
+# Logging and Monitoring
+logging:
+  use_tensorboard: true
+  use_wandb: false  # Set to true if using Weights & Biases
+  log_frequency: 10
+  project_name: "xray-report-generation"
+  
+# Paths
+paths:
+  data_dir: "/export/home/acs/stud/h/hseyedfarid/xray"
+  model_dir: "/home/olimp/NoteBooks/xray/models"
+  output_dir: "/home/olimp/NoteBooks/xray/outputs"
+  reports_dir: "/home/olimp/NoteBooks/xray/outputs/reports"
+  visualizations_dir: "/home/olimp/NoteBooks/xray/outputs/visualizations"
